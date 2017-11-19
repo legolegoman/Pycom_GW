@@ -1,4 +1,4 @@
-""" LoPy LoRaWAN Nano Gateway. Can be used for both EU868 and US915. """
+ #""" LoPy LoRaWAN Nano Gateway. Can be used for both EU868 and US915. """
 
 import errno
 import machine
@@ -7,6 +7,7 @@ import ujson
 import uos
 import usocket
 import utime
+import time
 import _thread
 from micropython import const
 from network import LoRa
@@ -159,6 +160,7 @@ class NanoGateway:
         # initialize the LoRa radio in LORA mode
         self._log('Setting up the LoRa radio at {:.1f} Mhz using {}', self._freq_to_float(self.frequency), self.datarate)
         self.lora = LoRa(
+            #mode=LoRa.LORAWAN,
             mode=LoRa.LORA,
             frequency=self.frequency,
             bandwidth=self.bw,
@@ -175,6 +177,7 @@ class NanoGateway:
 
         self.lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=self._lora_cb)
         self._log('LoRaWAN nano gateway online')
+        self._log(self.lora.frequency())
 
     def stop(self):
         """
@@ -204,7 +207,8 @@ class NanoGateway:
         self.wlan.deinit()
 
     def _connect_to_wifi(self):
-        self.wlan.connect(self.ssid, auth=(None, self.password))
+        self.wlan.connect('legohome', auth=(WLAN.WPA2, 'helloworldbear'))
+#        self.wlan.connect(self.ssid, auth=(None, self.password))
         while not self.wlan.isconnected():
             utime.sleep_ms(50)
         self._log('WiFi connected to: {}', self.ssid)
@@ -365,6 +369,9 @@ class NanoGateway:
                     self._log("Push ack")
                 elif _type == PULL_ACK:
                     self._log("Pull ack")
+#                    self._log(self.lora.frequency())
+#                    self._log(data[3])
+#                    time.sleep(1)
                 elif _type == PULL_RESP:
                     self.dwnb += 1
                     ack_error = TX_ERR_NONE
@@ -379,7 +386,7 @@ class NanoGateway:
                                 ubinascii.a2b_base64(tx_pk["txpk"]["data"]),
                                 tx_pk["txpk"]["tmst"] - 50, tx_pk["txpk"]["datr"],
                                 int(tx_pk["txpk"]["freq"] * 1000000)
-                            ), 
+                            ),
                             us=t_us
                         )
                     else:
